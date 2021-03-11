@@ -1,12 +1,13 @@
 import requests
 from lxml import html
 import datetime
+import options, optionsParser
 
-token = '1664703990:AAFKjow19S9yWvHFe-QezyGCgCBefvryxLU'
-
-def get_news_html():
+def get_news_html(region_number: int, begin_date: datetime.datetime, end_date: datetime.datetime):
     # TODO: убрать хардкод дат и региона
-    url = 'https://mrsk-cp.ru/for_consumers/planned_emergency_outages/planned_outages_timetable/get_outages.php?region=43&district=0&begin_date=09.03.2021&end_date=11.03.2021'
+    begin_date_str = begin_date.strftime('')
+    params_str = f'region={region_number}&district=0&begin_date=09.03.2021&end_date=11.03.2021'
+    url = f'https://mrsk-cp.ru/for_consumers/planned_emergency_outages/planned_outages_timetable/get_outages.php?{params_str}'
     response = requests.get(url)
     return response.text
 
@@ -68,7 +69,8 @@ def get_blackouts_text_for_output(blackouts):
 
     return '\n'.join(lines)
 
-
+options = optionsParser.parse()
+bot_token = options.telegram_bot_token
 CHECK_BLACKOUT_NEWS_MIN_PERIOD = datetime.timedelta(seconds=10)
 CHECK_BOT_UPDATES_MIN_PERIOD = datetime.timedelta(seconds=10)
 last_update_id = 0
@@ -81,7 +83,7 @@ while True:
         continue
 
     offset = last_update_id + 1
-    updates = get_bot_updates(token, offset)
+    updates = get_bot_updates(bot_token, offset)
     last_bot_udpates_checking_date = now
     if len(updates) == 0:
         continue
@@ -117,4 +119,4 @@ while True:
             text = title + '\n' + get_blackouts_text_for_output(blackouts_for_user)
         else:
             text = 'В ближайшие несколько дней отключений не предвидется.'
-        send_bot_message(token, chat_id, text)
+        send_bot_message(bot_token, chat_id, text)
