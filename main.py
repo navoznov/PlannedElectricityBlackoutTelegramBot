@@ -1,12 +1,16 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import requests
 from lxml import html
 import datetime
 import options, optionsParser
 
 def get_news_html(region_number: int, begin_date: datetime.datetime, end_date: datetime.datetime):
-    # TODO: убрать хардкод дат и региона
-    begin_date_str = begin_date.strftime('')
-    params_str = f'region={region_number}&district=0&begin_date=09.03.2021&end_date=11.03.2021'
+    DATE_FORMAT = '%d.%m.%Y'
+    begin_date_str = begin_date.strftime(DATE_FORMAT)
+    end_date_str = end_date.strftime(DATE_FORMAT)
+    params_str = f'region={region_number}&district=0&begin_date={begin_date_str}&end_date={end_date_str}'
     url = f'https://mrsk-cp.ru/for_consumers/planned_emergency_outages/planned_outages_timetable/get_outages.php?{params_str}'
     response = requests.get(url)
     return response.text
@@ -48,7 +52,7 @@ def get_bot_updates(token, offset):
 
 
 def send_bot_message(token, chat_id, text):
-    params = {'chat_id': chat_id, 'text': text}
+    params = {'chat_id': chat_id, 'text': text, 'parse_mode': 'Markdown'}
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     try:
         response = requests.post(url, data=params)
@@ -69,10 +73,13 @@ def get_blackouts_text_for_output(blackouts):
 
     return '\n'.join(lines)
 
+region_number = 43
 options = optionsParser.parse()
 bot_token = options.telegram_bot_token
 CHECK_BLACKOUT_NEWS_MIN_PERIOD = datetime.timedelta(seconds=10)
 CHECK_BOT_UPDATES_MIN_PERIOD = datetime.timedelta(seconds=10)
+NEWS_SEARCHING_PERIOD_IN_DAYS = 3
+news_searching_period = datetime.timedelta(days=NEWS_SEARCHING_PERIOD_IN_DAYS)
 last_update_id = 0
 blackouts = []
 last_news_udpate_date = datetime.datetime.now() - datetime.timedelta(days=3)
@@ -92,7 +99,10 @@ while True:
     last_update_id = max(update_ids)
 
     if now > last_news_udpate_date + CHECK_BLACKOUT_NEWS_MIN_PERIOD:
-        news_html = get_news_html()
+        searching_begin_date = now.date()
+        searching_end_date = (now + news_searching_period).date()
+
+        news_html = get_news_html(region_number, searching_begin_date, searching_end_date)
         blackouts = parse_blackouts(news_html)
         last_news_udpate_date = now
 
@@ -116,7 +126,7 @@ while True:
         blackouts_for_user = [b for b in blackouts if b[0] and  user_text in b[0] or b[1] and user_text in b[1]]
         if blackouts_for_user:
             title = 'Ближайшие отключения:'
-            text = title + '\n' + get_blackouts_text_for_output(blackouts_for_user)
+            text = title + '\n' + '```\n' + get_blackouts_text_for_output(blackouts_for_user) + '```'
         else:
             text = 'В ближайшие несколько дней отключений не предвидется.'
         send_bot_message(bot_token, chat_id, text)
