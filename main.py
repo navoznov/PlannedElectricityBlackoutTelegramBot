@@ -26,6 +26,7 @@ def parse_blackouts(news_html):
         tds = tr.xpath('./td')
         region = tr.xpath('./td[@name="cell-region"]')[0].text
         place = tr.xpath('./td[@id="col-place"]')[0].text
+        address = tr.xpath('./td[@id="col-address"]')[0].text
         begin_date_srt = tr.xpath('./td[@id="col-bdate"]')[0].text
         begin_time_str = tds[BEGIN_TIME_TD_INDEX].text
         begin_date = f'{begin_date_srt} {begin_time_str}'
@@ -33,7 +34,7 @@ def parse_blackouts(news_html):
         end_time_str = tds[END_TIME_TD_INDEX].text
         end_date = f'{end_date_str} {end_time_str}'
 
-        result.append((region, place, begin_date, end_date))
+        result.append((region, place, address, begin_date, end_date))
 
     return result
 
@@ -63,8 +64,9 @@ def send_bot_message(token, chat_id, text):
 
 
 def get_blackouts_text_for_output(blackouts):
-    max_region_length = max([len(r if r else '') for r,_,_,_ in blackouts])
-    max_place_length = max([len(p if p else '') for _,p,_,_ in blackouts])
+    max_region_length = max([len(r if r else '') for r,_,_,_,_ in blackouts])
+    max_place_length = max([len(p if p else '') for _,p,_,_,_ in blackouts])
+    # max_address_length = max([len(a if a else '') for _,_,a,_,_ in blackouts])
     lines = []
     for region, place, begin_date, end_date in blackouts:
         region = region if region else ''
