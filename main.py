@@ -5,6 +5,8 @@ import requests
 from lxml import html
 import datetime
 import options, optionsParser
+from blackout import Blackout
+
 
 def get_news_html(region_number: int, begin_date: datetime.datetime, end_date: datetime.datetime):
     DATE_FORMAT = '%d.%m.%Y'
@@ -16,7 +18,7 @@ def get_news_html(region_number: int, begin_date: datetime.datetime, end_date: d
     return response.text
 
 
-def parse_blackouts(news_html):
+def parse_blackouts(news_html: str):
     tree = html.fromstring(news_html)
     trs = tree.xpath('//tbody/tr')
     BEGIN_TIME_TD_INDEX = 4
@@ -24,7 +26,7 @@ def parse_blackouts(news_html):
     result = []
     for tr in trs:
         tds = tr.xpath('./td')
-        region = tr.xpath('./td[@name="cell-region"]')[0].text
+        district = tr.xpath('./td[@name="cell-region"]')[0].text
         place = tr.xpath('./td[@id="col-place"]')[0].text
         address = tr.xpath('./td[@id="col-address"]')[0].text
         begin_date_srt = tr.xpath('./td[@id="col-bdate"]')[0].text
@@ -33,11 +35,15 @@ def parse_blackouts(news_html):
         end_date_str = tr.xpath('./td[@id="col-edate"]')[0].text
         end_time_str = tds[END_TIME_TD_INDEX].text
         end_date = f'{end_date_str} {end_time_str}'
-
-        result.append((region, place, address, begin_date, end_date))
+        blackout = Blackout(district, place, address, begin_date, end_date)
+        result.append(blackout)
 
     return result
 
+
+def get_blackouts(region_number: int, begin_date: datetime.datetime, end_date: datetime.datetime):
+    news_html = get_news_html(region_number, searching_begin_date, searching_end_date)
+    return parse_blackouts(news_html)
 
 def get_bot_updates(token, offset):
     params = {'timeout': 30, 'offset': offset}
@@ -52,6 +58,11 @@ def get_bot_updates(token, offset):
     return response_json.get('result', [])
 
 
+def get_message_chat_id(message):
+    chat = message.get('chat', None)
+    return chat.get('id', None) if chat else None
+
+
 def send_bot_message(token, chat_id, text):
     params = {'chat_id': chat_id, 'text': text, 'parse_mode': 'Markdown'}
     url = f"https://api.telegram.org/bot{token}/sendMessage"
@@ -63,17 +74,23 @@ def send_bot_message(token, chat_id, text):
         return None
 
 
+def filter_blackouts(blackouts, text: str):
+    return [b for b in blackouts if b.district and text in b.district or b.place and text in b.place]
+
+
+def blackout_to_output_string(blackout):
+    region = blackout.region if blackout.region else ''
+    place = blackout.place if blackout.place else ''
+    return f'{region.ljust(max_region_length)} | {place.ljust(max_place_length)} | {blackout.begin_date} - {blackout.end_date}'
+
+
 def get_blackouts_text_for_output(blackouts):
     max_region_length = max([len(r if r else '') for r,_,_,_,_ in blackouts])
     max_place_length = max([len(p if p else '') for _,p,_,_,_ in blackouts])
     # max_address_length = max([len(a if a else '') for _,_,a,_,_ in blackouts])
-    lines = []
-    for region, place, begin_date, end_date in blackouts:
-        region = region if region else ''
-        place = place if place else ''
-        lines.append(f'{region.ljust(max_region_length)} | {place.ljust(max_place_length)} | {begin_date} | {end_date}')
-
+    lines = [blackout_to_output_string(b) for b in blackouts]
     return '\n'.join(lines)
+
 
 region_number = 43
 options = optionsParser.parse()
@@ -104,9 +121,12 @@ while True:
         searching_begin_date = now.date()
         searching_end_date = (now + news_searching_period).date()
 
-        news_html = get_news_html(region_number, searching_begin_date, searching_end_date)
-        blackouts = parse_blackouts(news_html)
-        last_news_udpate_date = now
+        try:
+            blackouts = get_blackouts(region_number, searching_begin_date, searching_end_date)
+            last_news_udpate_date = now
+        except:
+            # TODO: Обработка ошибки
+            continue
 
     for update in updates:
         message = update.get('message', None)
@@ -117,15 +137,11 @@ while True:
         if not user_text:
             continue
 
-        chat = message.get('chat', None)
-        if not chat:
-            continue
-
-        chat_id = chat.get('id', None)
+        chat_id = get_message_chat_id(message)
         if not chat_id:
             continue
 
-        blackouts_for_user = [b for b in blackouts if b[0] and  user_text in b[0] or b[1] and user_text in b[1]]
+        blackouts_for_user = filter_blackouts(blackouts, user_text)
         if blackouts_for_user:
             title = 'Ближайшие отключения:'
             text = title + '\n' + '```\n' + get_blackouts_text_for_output(blackouts_for_user) + '```'
