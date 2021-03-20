@@ -78,18 +78,32 @@ def filter_blackouts(blackouts, text: str):
     return [b for b in blackouts if b.district and text in b.district or b.place and text in b.place]
 
 
-def blackout_to_output_string(blackout):
-    region = blackout.region if blackout.region else ''
+def blackout_to_output_string(blackout, max_district_length, max_place_length):
+    district = blackout.district if blackout.district else ''
     place = blackout.place if blackout.place else ''
-    return f'{region.ljust(max_region_length)} | {place.ljust(max_place_length)} | {blackout.begin_date} - {blackout.end_date}'
+    return f'{district.ljust(max_district_length)} | {place.ljust(max_place_length)} | {blackout.begin_date} - {blackout.end_date}'
 
 
 def get_blackouts_text_for_output(blackouts):
-    max_region_length = max([len(r if r else '') for r,_,_,_,_ in blackouts])
-    max_place_length = max([len(p if p else '') for _,p,_,_,_ in blackouts])
-    # max_address_length = max([len(a if a else '') for _,_,a,_,_ in blackouts])
-    lines = [blackout_to_output_string(b) for b in blackouts]
+    max_district_length = max([len(b.district if b.district else '') for b in blackouts])
+    max_place_length = max([len(b.place if b.place else '') for b in blackouts])
+    lines = [blackout_to_output_string(b, max_district_length, max_place_length) for b in blackouts]
     return '\n'.join(lines)
+
+
+def is_need_to_update_blackout_news(last_udpate_date):
+    last_udpate_time = last_udpate_date.time()
+    CHECK_BLACKOUT_NEWS_TIMES = [datetime.time(10), datetime.time(15), datetime.time(20)]
+    now_time = datetime.datetime.now().time()
+    result = False
+    for time in CHECK_BLACKOUT_NEWS_TIMES:
+        if not is_near_time(last_udpate_time, time) and is_near_time(now_time, time):
+            return True
+    return False
+
+
+def is_near_time(source_time, target_time, delta = datetime.timedelta(minutes=5)):
+    return target_time - delta < source_time < target_time + delta
 
 
 region_number = 43
@@ -99,6 +113,7 @@ CHECK_BLACKOUT_NEWS_MIN_PERIOD = datetime.timedelta(seconds=10)
 CHECK_BOT_UPDATES_MIN_PERIOD = datetime.timedelta(seconds=10)
 NEWS_SEARCHING_PERIOD_IN_DAYS = 3
 news_searching_period = datetime.timedelta(days=NEWS_SEARCHING_PERIOD_IN_DAYS)
+# todo: переименовать
 last_update_id = 0
 blackouts = []
 last_news_udpate_date = datetime.datetime.now() - datetime.timedelta(days=3)
