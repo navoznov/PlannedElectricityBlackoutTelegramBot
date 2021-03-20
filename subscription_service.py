@@ -1,5 +1,5 @@
 from typing import List
-from subscriprion import Subscription
+from subscription import Subscription
 import dbHelper
 
 
