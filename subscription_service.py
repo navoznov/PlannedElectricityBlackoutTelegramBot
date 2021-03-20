@@ -8,9 +8,3 @@ def get_all_subscriptions() -> List[Subscription]:
     sql = 'SELECT Id, UserId, Text, RegionCode FROM Subscriptions'
     rows = dbHelper.select(sql)
     return [Subscription(*r) for r in rows] if rows else []
-
-
-def get_subscription_hash(subscriprion: Subscription) -> str:
-    fields = [subscriprion.chat_id, subscriprion.text, subscriprion.region_code]
-    unique_str = ''.join(fields)
-    return hashlib.md5(unique_str.encode(encoding='utf-8')).hexdigest()
