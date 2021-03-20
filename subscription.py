@@ -7,6 +7,7 @@ class Subscription:
     text: str
     region_code: int
     id: str = ''
+    created_at: str = ''
 
     def get_subscription_hash(self) -> str:
         fields = [str(x) for x in [self.chat_id, self.text, self.region_code]]

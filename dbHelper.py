@@ -16,6 +16,7 @@ def init_db():
                 "ChatId"	INTEGER NOT NULL,
                 "Text"	TEXT NOT NULL,
                 "RegionCode"	INTEGER NOT NULL,
+                "CreatedAt"	TEXT NOT NULL DEFAULT '',
                 PRIMARY KEY("Id")
             );''')
             connection.execute('''CREATE TABLE "Blackouts" (
