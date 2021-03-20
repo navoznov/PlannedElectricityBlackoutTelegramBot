@@ -18,16 +18,16 @@ def init_db():
                 "RegionCode"	INTEGER NOT NULL,
                 PRIMARY KEY("Id")
             );''')
-            # connection.execute('''CREATE TABLE "Blackouts" (
-            #     "Id"	TEXT NOT NULL UNIQUE,
-            #     "RegionNumber"	INTEGER NOT NULL,
-            #     "District"	TEXT NOT NULL,
-            #     "Place"	TEXT,
-            #     "Address"	TEXT,
-            #     "BeginDate"	TEXT NOT NULL,
-            #     "EndDate"	TEXT NOT NULL,
-            #     PRIMARY KEY("Id")
-            # );''')
+            connection.execute('''CREATE TABLE "Blackouts" (
+                "Id"	TEXT NOT NULL UNIQUE,
+                "RegionCode"	INTEGER NOT NULL,
+                "District"	TEXT NOT NULL,
+                "Place"	TEXT,
+                "Address"	TEXT,
+                "BeginDate"	TEXT NOT NULL,
+                "EndDate"	TEXT NOT NULL,
+                PRIMARY KEY("Id")
+            );''')
         except sqlite3.DatabaseError as e:
             print("DB Error: ", err)
         finally:
