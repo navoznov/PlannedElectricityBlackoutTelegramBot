@@ -6,6 +6,7 @@ db_filename = 'electricity.sqlite3'
 def set_db_filename(filename):
     db_filename = filename
 
+
 def init_db():
     if not os.path.isfile(db_filename):
         # Схема таблицы подписок
@@ -33,6 +34,7 @@ def init_db():
             print("DB Error: ", err)
         finally:
             connection.close()
+
 
 def create_connection(filename=db_filename):
     try:
