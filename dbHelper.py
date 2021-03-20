@@ -12,7 +12,7 @@ def init_db():
         try:
             connection = create_connection()
             connection.execute('''CREATE TABLE "Subscriptions" (
-                "Id"	INTEGER NOT NULL UNIQUE,
+                "Id"	TEXT NOT NULL UNIQUE,
                 "ChatId"	INTEGER NOT NULL,
                 "Text"	TEXT NOT NULL,
                 "RegionCode"	INTEGER NOT NULL,
