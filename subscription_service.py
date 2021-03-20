@@ -16,3 +16,8 @@ def create_subscriprion(chat_id: int, text: str, region_code: int) -> Subscripti
     insert_values = (subscription.id, subscription.chat_id, subscription.text, subscription.region_code)
     dbHelper.insert_or_update(sql, insert_values)
     return subscription
+
+def get_region_codes() -> List[int]:
+    sql = 'SELECT DISTINCT RegionCode FROM Subscriptions'
+    rows = dbHelper.select(sql)
+    return [*r[0] for r in rows]
