@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 @dataclass
 class Blackout:
-    # region_number: int
+    region_code: int
     district: str
     place: str
     address: str
